@@ -1,53 +1,61 @@
 using UnityEngine;
 
-public class DashOnSwordSwing : MonoBehaviour
+public class PlayerController : MonoBehaviour
 {
-    public float dashDistance = 5f; // Distance to dash
-    public float dashDuration = 0.2f; // Duration of the dash
-    public Animator animator; // Reference to the Animator component
+    public float moveSpeed = 5f;
+    public float jumpForce = 5f;
+    private int jumpCount = 0;
+    private const int maxJumpCount = 2; // Allow double jump
+    private Rigidbody2D rb;
+    private bool isGrounded;
 
-    private bool isDashing = false;
-    private Vector3 dashDirection;
+    void Start()
+    {
+        rb = GetComponent<Rigidbody2D>();
+    }
 
     void Update()
     {
-        // Check for sword swing input (e.g., left mouse button)
-        if (Input.GetMouseButtonDown(0) && !isDashing)
-        {
-            // Trigger the sword swing animation
-            if (animator != null)
-            {
-                animator.SetTrigger("SwingSword");
-            }
+        Move();
+        Jump();
+    }
 
-            // Start the dash
-            StartCoroutine(Dash());
+    private void Move()
+    {
+        float moveInput = Input.GetAxis("Horizontal");
+        rb.velocity = new Vector2(moveInput * moveSpeed, rb.velocity.y);
+    }
+
+    private void Jump()
+    {
+        // Check if the player is grounded
+        if (isGrounded)
+        {
+            jumpCount = 0; // Reset jump count when grounded
+        }
+
+        if (Input.GetButtonDown("Jump") && jumpCount < maxJumpCount)
+        {
+            rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+            jumpCount++;
         }
     }
 
-    private IEnumerator Dash()
+    private void OnCollisionEnter2D(Collision2D collision)
     {
-        isDashing = true;
-
-        // Calculate the dash direction based on the player's facing direction
-        dashDirection = transform.forward * dashDistance;
-
-        // Move the player
-        Vector3 startPosition = transform.position;
-        Vector3 targetPosition = startPosition + dashDirection;
-
-        float elapsedTime = 0f;
-
-        while (elapsedTime < dashDuration)
+        // Check if the player is touching the ground
+        if (collision.gameObject.CompareTag("Ground"))
         {
-            transform.position = Vector3.Lerp(startPosition, targetPosition, (elapsedTime / dashDuration));
-            elapsedTime += Time.deltaTime;
-            yield return null;
+            isGrounded = true;
         }
+    }
 
-        // Ensure the player ends up exactly at the target position
-        transform.position = targetPosition;
-
-        isDashing = false;
+    private void OnCollisionExit2D(Collision2D collision)
+    {
+        // Check if the player is no longer touching the ground
+        if (collision.gameObject.CompareTag("Ground"))
+        {
+            isGrounded = false;
+        }
     }
 }
